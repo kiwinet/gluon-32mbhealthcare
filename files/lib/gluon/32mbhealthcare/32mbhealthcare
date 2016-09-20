@@ -1,0 +1,37 @@
+#!/bin/sh
+# for hints see https://forum.ffrn.de/t/workaround-841n-load-neustart-problem/1167/39
+mem=$(cat /proc/meminfo |grep MemTotal |grep -oE [0-9]*)
+
+# check if config mode is done before
+conf=$(uci get gluon-setup-mode.@setup_mode[0].configured)
+if [ $conf -ne 1 ] ; then logger "router seem to be unconfigured, exit $0"; exit 0; fi
+
+# check for existing fastd key
+keyexist=$(/etc/init.d/fastd show_key mesh_vpn|wc -l) 
+if [ $keyexist -ne 1 ] ; then logger "no fastd key found, exit $0" ; exit 0; fi
+
+# check memory available
+if [ $mem -le 35000 ] ; then
+	# disable random gen. this may effect fastd
+	/etc/init.d/haveged disable
+	/etc/init.d/haveged stop
+	# incl. defaults
+	sysctl -w net.ipv6.neigh.default.gc_interval=60 	# 30
+	sysctl -w net.ipv6.neigh.default.gc_stale_time=120	# 60
+	sysctl -w net.ipv6.neigh.default.gc_thresh1=64		# 128
+	sysctl -w net.ipv6.neigh.default.gc_thresh2=128		# 256
+	sysctl -w net.ipv6.neigh.default.gc_thresh3=512		# 1024
+        sysctl -w net.ipv4.neigh.default.gc_interval=60		# 30
+        sysctl -w net.ipv4.neigh.default.gc_stale_time=120	# 60
+        sysctl -w net.ipv4.neigh.default.gc_thresh1=64		# 128
+        sysctl -w net.ipv4.neigh.default.gc_thresh2=128		# 256
+        sysctl -w net.ipv4.neigh.default.gc_thresh3=512		# 1024
+        sysctl -w vm.min_free_kbytes=1024			# 670
+        sysctl -w vm.dirty_background_ratio=5			# 10
+        sysctl -w vm.dirty_ratio=30				# 20
+        sysctl -w vm.dirty_expire_centisecs=0			# 3000
+fi
+
+logger "$0 succesfully"
+
+exit 0

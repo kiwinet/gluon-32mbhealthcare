@@ -1,0 +1,13 @@
+#!/bin/sh
+# this upgrade may fail if theres an exotic rc.local
+# check if already exist
+grep -q "/lib/gluon/32mbhealthcare/32mbhealthcare" /etc/rc.local && exit 0
+# write in rc.local
+if [ $(tail -n1 /etc/rc.local) == "exit 0" ]; then
+	sed -i '$ d' /etc/rc.local
+cat << EOF >> /etc/rc.local
+/lib/gluon/32mbhealthcare/32mbhealthcare
+exit 0
+EOF
+
+fi
