@@ -1,20 +1,26 @@
 #!/bin/sh
 # for hints see https://forum.ffrn.de/t/workaround-841n-load-neustart-problem/1167/39
+# and similar https://github.com/Freifunk-Rhein-Neckar/ffrn-packages/ffrn-lowmem-patch
 mem=$(cat /proc/meminfo |grep MemTotal |grep -oE [0-9]*)
 
 # check if config mode is done before
 conf=$(uci get gluon-setup-mode.@setup_mode[0].configured)
-if [ $conf -ne 1 ] ; then logger "router seem to be unconfigured, exit $0"; exit 0; fi
+if [ $conf -ne 1 ] ; then logger "$0 : router seems to be unconfigured, if in configmode enable haveged and exit"; fi
 
-# check for existing fastd key
-keyexist=$(/etc/init.d/fastd show_key mesh_vpn|wc -l) 
-if [ $keyexist -ne 1 ] ; then logger "no fastd key found, exit $0" ; exit 0; fi
+# start haveged in config mode
+MODE=`uci get gluon-setup-mode.@setup_mode[0].enabled`
+if [ $MODE == "1" ] ; then
+	/etc/init.d/haveged start
+	exit 0
+fi
 
 # check memory available
 if [ $mem -le 35000 ] ; then
-	# disable random gen. this may effect fastd
-	/etc/init.d/haveged disable
-	/etc/init.d/haveged stop
+	# disable and stop haveged if enabled
+	if [ -f /etc/rc.d/S13haveged ] ; then    
+	        /etc/init.d/haveged disable
+        	/etc/init.d/haveged stop
+	fi
 	# incl. defaults
 	sysctl -w net.ipv6.neigh.default.gc_interval=60 	# 30
 	sysctl -w net.ipv6.neigh.default.gc_stale_time=120	# 60
