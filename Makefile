@@ -28,5 +28,5 @@ define Package/gluon-32mbhealthcare/install
         $(CP) ./files/* $(1)/
 endef
 
-$(eval $(call BuildPackage,gluon-ssid-changer))
+$(eval $(call BuildPackage,gluon-32mbhealthcare))
 
